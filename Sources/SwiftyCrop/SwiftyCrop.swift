@@ -11,18 +11,18 @@ import SwiftUI
 ///   - onComplete: A closure that's called when the cropping is complete. This closure returns the cropped `UIImage?`.
 ///     If an error occurs the return value is nil.
 public struct SwiftyCropView: View {
-    private let imageToCrop: UIImage
+    @Binding private var imageToCrop: UIImage?
     private let maskShape: MaskShape
     private let configuration: SwiftyCropConfiguration
     private let onComplete: (UIImage?) -> Void
 
     public init(
-        imageToCrop: UIImage,
+        imageToCrop: Binding<UIImage?>,
         maskShape: MaskShape,
         configuration: SwiftyCropConfiguration = SwiftyCropConfiguration(),
         onComplete: @escaping (UIImage?) -> Void
     ) {
-        self.imageToCrop = imageToCrop
+        self._imageToCrop = imageToCrop
         self.maskShape = maskShape
         self.configuration = configuration
         self.onComplete = onComplete
@@ -30,7 +30,7 @@ public struct SwiftyCropView: View {
 
     public var body: some View {
         CropView(
-            image: imageToCrop,
+            image: $imageToCrop,
             maskShape: maskShape,
             configuration: configuration,
             onComplete: onComplete

@@ -4,19 +4,19 @@ struct CropView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: CropViewModel
 
-    private let image: UIImage
+    @Binding private var image: UIImage?
     private let maskShape: MaskShape
     private let configuration: SwiftyCropConfiguration
     private let onComplete: (UIImage?) -> Void
     private let localizableTableName: String
 
     init(
-        image: UIImage,
+        image: Binding<UIImage?>,
         maskShape: MaskShape,
         configuration: SwiftyCropConfiguration,
         onComplete: @escaping (UIImage?) -> Void
     ) {
-        self.image = image
+        self._image = image
         self.maskShape = maskShape
         self.configuration = configuration
         self.onComplete = onComplete
@@ -83,32 +83,36 @@ struct CropView: View {
             .zIndex(1)
 
             ZStack {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .rotationEffect(viewModel.angle)
-                    .scaleEffect(viewModel.scale)
-                    .offset(viewModel.offset)
-                    .opacity(0.5)
-                    .overlay(
-                        GeometryReader { geometry in
-                            Color.clear
-                                .onAppear {
-                                    viewModel.updateMaskDimensions(for: geometry.size)
-                                }
-                        }
-                    )
-
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .rotationEffect(viewModel.angle)
-                    .scaleEffect(viewModel.scale)
-                    .offset(viewModel.offset)
-                    .mask(
-                        MaskShapeView(maskShape: maskShape)
-                            .frame(width: viewModel.maskSize.width, height: viewModel.maskSize.height)
-                    )
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .rotationEffect(viewModel.angle)
+                        .scaleEffect(viewModel.scale)
+                        .offset(viewModel.offset)
+                        .opacity(0.5)
+                        .overlay(
+                            GeometryReader { geometry in
+                                Color.clear
+                                    .onAppear {
+                                        viewModel.updateMaskDimensions(for: geometry.size)
+                                    }
+                            }
+                        )
+                    
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .rotationEffect(viewModel.angle)
+                        .scaleEffect(viewModel.scale)
+                        .offset(viewModel.offset)
+                        .mask(
+                            MaskShapeView(maskShape: maskShape)
+                                .frame(width: viewModel.maskSize.width, height: viewModel.maskSize.height)
+                        )
+                } else {
+                    Text("no Image")
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .simultaneousGesture(magnificationGesture)
@@ -117,12 +121,9 @@ struct CropView: View {
 
             HStack {
                 Button {
-                    dismiss()
+                    image = nil
                 } label: {
-                    Text(
-                        configuration.texts.cancelButton ??
-                        NSLocalizedString("cancel_button", tableName: localizableTableName, bundle: .module, comment: "")
-                    )
+                    Image(systemName: "xmark")
                 }
                 .font(configuration.fonts.cancelButton)
                 .foregroundColor(configuration.colors.cancelButton)
@@ -156,6 +157,7 @@ struct CropView: View {
     }
 
     private func cropImage() -> UIImage? {
+        guard let image else { return nil }
         var editedImage: UIImage = image
         if configuration.rotateImage {
             if let rotatedImage: UIImage = viewModel.rotate(
